@@ -1,8 +1,9 @@
 <?php
 /** @var Controller $this */
-/** @var TimelineYii\Models\Posts\CompanyProduct $data */
+/** @var NotificationYii\Models\ActiveMessage $data */
 
-$product = $data->getSourceProduct();
+/** @var Product $product */
+$product = Product::model()->findByPk($data->getMeta('product'));
 $companyUrl = array('/company/view', 'id' => $product->shop->id);
 
 echo CHtml::openTag('div', array('class' => 'comment-avatar'));

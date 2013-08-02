@@ -9,6 +9,8 @@
 namespace NotificationYii;
 
 // Infra
+use Notification\Model\MessageInterface;
+use Notification\Service\MessageServiceInterface;
 use Yii;
 use CWebModule;
 use NotificationYii\Models\ActiveMessenger;
@@ -25,7 +27,7 @@ use Notification\Model\QueueInterface;
  * @author Veaceslav Medvedev <slavcopost@gmail.com>
  * @version 0.1
  */
-class Module extends CWebModule
+class Module extends CWebModule implements MessageServiceInterface
 {
 	public $messengerClass = 'NotificationYii\Models\ActiveMessenger';
 	public $queueClass = 'NotificationYii\Models\ActiveQueue';
@@ -87,5 +89,30 @@ class Module extends CWebModule
 		$message = new ActiveMessage();
 		$message->setMeta($messageMeta);
 		$messenger->send($message);
+	}
+
+	public function distributeQueue($queueId)
+	{
+		$queue = $this->getQueue($queueId);
+
+		if ($queue->count() > 0) {
+			$transaction = Yii::app()->getDb()->beginTransaction();
+
+			try {
+				while ($message = $queue->dequeue()) {
+					$this->publish($message);
+				}
+
+				$transaction->commit();
+			} catch (\CDbException $e) {
+				$transaction->rollback();
+				throw $e;
+			}
+		}
+	}
+
+	public function publish(MessageInterface $message)
+	{
+		// ActiveMessage no need to publish, they are stored in the database.
 	}
 }

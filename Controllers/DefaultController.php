@@ -8,12 +8,8 @@
 
 namespace NotificationYii\Controllers;
 
-use StdLib\VarDumper;
 use Yii;
 use Controller;
-
-use Notification\Model\MessageInterface;
-use Notification\Service\MessageServiceInterface;
 
 /**
  * Class DefaultController
@@ -23,7 +19,7 @@ use Notification\Service\MessageServiceInterface;
  *
  * @method \NotificationYii\Module getModule()
  */
-class DefaultController extends Controller implements MessageServiceInterface
+class DefaultController extends Controller
 {
 	public $layout = null;
 
@@ -51,22 +47,7 @@ class DefaultController extends Controller implements MessageServiceInterface
 
 	public function actionIndex()
 	{
-		$queue = $this->getModule()->getQueue('user-' . Yii::app()->getUser()->getId());
-
-		if ($queue->count() > 0) {
-			$transaction = Yii::app()->getDb()->beginTransaction();
-
-			try {
-				while ($message = $queue->dequeue()) {
-					$this->publish($message);
-				}
-
-				$transaction->commit();
-			} catch (\CDbException $e) {
-				$transaction->rollback();
-				throw $e;
-			}
-		}
+		$this->getModule()->distributeQueue('user-' . Yii::app()->getUser()->getId());
 
 		$dataProvider = new \CActiveDataProvider(
 			'\NotificationYii\Models\ActiveMessage',
@@ -79,10 +60,5 @@ class DefaultController extends Controller implements MessageServiceInterface
 		$this->render('index', array(
 				'dataProvider' => $dataProvider,
 			));
-	}
-
-	public function publish(MessageInterface $message)
-	{
-		// ActiveMessage no need to publish, they are stored in the database.
 	}
 }
