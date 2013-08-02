@@ -8,7 +8,7 @@
 
 namespace NotificationYii\Models;
 
-use CActiveRecord;
+use ActiveRecord;
 use Notification\Model\MessageInterface;
 use Notification\Model\QueueInterface;
 use Yii;
@@ -18,14 +18,11 @@ use Yii;
  *
  * @author Veaceslav Medvedev <slavcopost@gmail.com>
  * @version 0.1
+ *
+ * @property mixed $id
  */
-class ActiveQueue extends CActiveRecord implements QueueInterface
+class ActiveQueue extends ActiveRecord implements QueueInterface
 {
-	public static function model($className = __CLASS__)
-	{
-		return parent::model($className);
-	}
-
 	public function tableName()
 	{
 		return 'msg_queue';
@@ -58,7 +55,7 @@ class ActiveQueue extends CActiveRecord implements QueueInterface
 			->createCommand()
 			->select('COUNT(id)')
 			->from('msg_queue_message')
-			->where('queue_id = ?', array($this->getPrimaryKey()))
+			->where('queue_id = ? AND published = 0', array($this->getPrimaryKey()))
 			->group('queue_id')
 			->queryScalar();
 	}
@@ -75,6 +72,7 @@ class ActiveQueue extends CActiveRecord implements QueueInterface
 				'queue_id' => $this->getPrimaryKey(),
 				'create_at' => new \CDbExpression('NOW()'),
 				'message' => serialize($message),
+				'published' => false,
 			));
 
 		return $this;
@@ -88,7 +86,7 @@ class ActiveQueue extends CActiveRecord implements QueueInterface
 		$res = $this->getDbConnection()
 			->createCommand()
 			->from('msg_queue_message')
-			->where('queue_id = ?', array($this->getPrimaryKey()))
+			->where('queue_id = ? AND published = 0', array($this->getPrimaryKey()))
 			->order('create_at ASC')
 			->limit(1)
 			->queryRow();
@@ -99,9 +97,11 @@ class ActiveQueue extends CActiveRecord implements QueueInterface
 
 		$this->getDbConnection()
 			->createCommand()
-			->delete('msg_queue_message', 'id = :id', array(
-				':id' => $res['id'],
-			));
+			->update('msg_queue_message', array(
+					'published' => true,
+				), 'id = :id', array(
+					':id' => (int) $res['id'],
+				));
 
 		return unserialize($res['message']);
 	}

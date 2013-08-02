@@ -11,6 +11,9 @@ namespace NotificationYii;
 // Infra
 use Yii;
 use CWebModule;
+use NotificationYii\Models\ActiveMessenger;
+use NotificationYii\Models\ActiveQueue;
+use NotificationYii\Models\ActiveMessage;
 
 // Domain
 use Notification\Model\MessengerInterface;
@@ -26,25 +29,26 @@ class Module extends CWebModule
 {
 	public $messengerClass = 'NotificationYii\Models\ActiveMessenger';
 	public $queueClass = 'NotificationYii\Models\ActiveQueue';
+	public $layout = 'main';
 
-	/**
-	 * @return MessengerInterface
-	 */
-	public function getActiveMessenger()
+	protected function preinit()
 	{
-		return $this->getMessenger(Yii::app()->user->name);
+		parent::preinit();
+		$this->controllerNamespace = __NAMESPACE__ . '\Controllers';
+		$this->setControllerPath(__DIR__ . '/Controllers');
+		$this->setViewPath(__DIR__ . '/Views');
 	}
 
 	/**
 	 * @param $id
-	 * @return QueueInterface
+	 * @return MessengerInterface
 	 */
 	public function getMessenger($id)
 	{
 		/** @var \CActiveRecord $class */
 		$class = $this->messengerClass;
 
-		/** @var \CActiveRecord $model */
+		/** @var ActiveMessenger $model */
 		$model = $class::model()->findByPk($id);
 
 		if (!$model) {
@@ -65,7 +69,7 @@ class Module extends CWebModule
 		/** @var \CActiveRecord $class */
 		$class = $this->queueClass;
 
-		/** @var \CActiveRecord $model */
+		/** @var ActiveQueue $model */
 		$model = $class::model()->findByPk($id);
 
 		if (!$model) {
@@ -75,5 +79,13 @@ class Module extends CWebModule
 		}
 
 		return $model;
+	}
+
+	public function notify($messengerId, $messageMeta)
+	{
+		$messenger = $this->getMessenger($messengerId);
+		$message = new ActiveMessage();
+		$message->setMeta($messageMeta);
+		$messenger->send($message);
 	}
 }

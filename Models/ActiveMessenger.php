@@ -20,6 +20,7 @@ use Notification\Model\SpecificationInterface;
  * @author Veaceslav Medvedev <slavcopost@gmail.com>
  * @version 0.1
  *
+ * @property mixed $id
  * @property QueueInterface[] $queues
  */
 class ActiveMessenger extends CActiveRecord implements MessengerInterface
