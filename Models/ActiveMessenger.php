@@ -9,7 +9,7 @@
 namespace NotificationYii\Models;
 
 use CActiveRecord;
-use Notification\Model\MessageInterface;
+use ArrayIterator;
 use Notification\Model\MessengerInterface;
 use Notification\Model\QueueInterface;
 use Notification\Model\SpecificationInterface;
@@ -55,15 +55,9 @@ class ActiveMessenger extends CActiveRecord implements MessengerInterface
 		return $this->getPrimaryKey();
 	}
 
-	/**
-	 * @param MessageInterface $message
-	 * @return void
-	 */
-	public function send(MessageInterface $message)
+	public function getIterator()
 	{
-		foreach ($this->queues as $queue) {
-			$queue->enqueue($message);
-		}
+		return new ArrayIterator($this->queues);
 	}
 
 	/**

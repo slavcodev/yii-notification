@@ -9,6 +9,8 @@
 namespace NotificationYii\Components;
 
 // Infra
+use Notification\Model\MessengerInterface;
+use Notification\Model\QueueInterface;
 use Yii;
 use CApplicationComponent;
 use CLogger;
@@ -40,5 +42,36 @@ class LogMessageService extends CApplicationComponent implements MessageServiceI
 		} else {
 			Yii::log(serialize($message), $this->level, $this->category);
 		}
+
+		return $this;
+	}
+
+	/**
+	 * @param MessageInterface $message
+	 * @param MessengerInterface $messenger
+	 * @return MessageServiceInterface
+	 */
+	public function send(
+		MessageInterface $message,
+		MessengerInterface $messenger
+	) {
+		foreach ($messenger->getIterator() as $queue) {
+			$queue->enqueue($message);
+		}
+
+		return $this;
+	}
+
+	/**
+	 * @param QueueInterface $queue
+	 * @return MessageServiceInterface
+	 */
+	public function dispatch(QueueInterface $queue)
+	{
+		while ($message = $queue->dequeue()) {
+			$this->publish($message);
+		}
+
+		return $this;
 	}
 }

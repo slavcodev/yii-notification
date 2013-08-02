@@ -9,28 +9,18 @@
 namespace NotificationYii\Models;
 
 use DateTime;
-use StdLib\VarDumper;
 use Yii;
 use CDbException;
 use ActiveRecord;
 use Notification\Model\MessageInterface;
 
 /**
- * Class Post
+ * Class ActiveMessage
  *
  * Attributes
  * @property int $id
  * @property string $message
  * @property string $create_at
- *
- * Getters:
- * @property array $data
- *
- * Related records:
- * Behavior methods:
- *
- * Overwrite core methods:
- * @method static \NotificationYii\Models\ActiveMessage model($className = null)
  *
  * @author Veaceslav Medvedev <slavcopost@gmail.com>
  * @version 0.1
@@ -98,9 +88,14 @@ class ActiveMessage extends ActiveRecord implements MessageInterface
 		return $this->id;
 	}
 
+	/**
+	 * @param array $meta
+	 * @return MessageInterface
+	 */
 	public function setMeta($meta)
 	{
 		$this->_meta = $meta;
+		return $this;
 	}
 
 	/**

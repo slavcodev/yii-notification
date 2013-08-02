@@ -47,12 +47,8 @@ class DefaultController extends Controller
 
 	public function actionIndex()
 	{
-		// Забираем сообщения из очереди ожидания
-		$queue = $this->getModule()->getQueue('user-' . Yii::app()->getUser()->getId());
-		$this->getModule()->dispatch($queue);
-
 		$dataProvider = new \CActiveDataProvider(
-			'\NotificationYii\Models\ActiveMessage',
+			$this->getModule()->messageClass,
 			array(
 				'pagination' => false,
 				'sort' => false,

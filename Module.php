@@ -9,17 +9,14 @@
 namespace NotificationYii;
 
 // Infra
+use CAction;
+use CController;
 use Yii;
 use CWebModule;
 use NotificationYii\Models\ActiveMessenger;
 use NotificationYii\Models\ActiveQueue;
 use NotificationYii\Models\ActiveMessage;
-
-// Domain
-use Notification\Model\MessengerInterface;
-use Notification\Model\QueueInterface;
-use Notification\Model\MessageInterface;
-use Notification\Service\MessageServiceInterface;
+use NotificationYii\Components\ActiveMessageService;
 
 /**
  * Class Module
@@ -27,11 +24,14 @@ use Notification\Service\MessageServiceInterface;
  * @author Veaceslav Medvedev <slavcopost@gmail.com>
  * @version 0.1
  */
-class Module extends CWebModule implements MessageServiceInterface
+class Module extends CWebModule
 {
 	public $messengerClass = 'NotificationYii\Models\ActiveMessenger';
 	public $queueClass = 'NotificationYii\Models\ActiveQueue';
+	public $messageClass = 'NotificationYii\Models\ActiveMessage';
 	public $layout = 'main';
+
+	protected $messageService;
 
 	protected function preinit()
 	{
@@ -41,9 +41,30 @@ class Module extends CWebModule implements MessageServiceInterface
 		$this->setViewPath(__DIR__ . '/Views');
 	}
 
+	public function beforeControllerAction($controller, $action)
+	{
+		// Забираем сообщения пользователя  из очереди ожидания
+		$queue = $this->getQueue('user-' . Yii::app()->getUser()->getId());
+		$this->getMessageService()->dispatch($queue);
+
+		return parent::beforeControllerAction($controller, $action);
+	}
+
+	/**
+	 * @return ActiveMessageService
+	 */
+	public function getMessageService()
+	{
+		if (null === $this->messageService) {
+			$this->messageService = new ActiveMessageService();
+		}
+
+		return $this->messageService;
+	}
+
 	/**
 	 * @param $id
-	 * @return MessengerInterface
+	 * @return ActiveMessenger
 	 */
 	public function getMessenger($id)
 	{
@@ -64,7 +85,7 @@ class Module extends CWebModule implements MessageServiceInterface
 
 	/**
 	 * @param $id
-	 * @return QueueInterface
+	 * @return ActiveQueue
 	 */
 	public function getQueue($id)
 	{
@@ -85,45 +106,19 @@ class Module extends CWebModule implements MessageServiceInterface
 
 	public function notify($messengerId, $messageMeta)
 	{
-		$messenger = $this->getMessenger($messengerId);
-		$message = new ActiveMessage();
-		$message->setMeta($messageMeta);
-		$messenger->send($message);
-	}
+		$this->getMessageService()->send(
+				$this->createMessage()->setMeta($messageMeta),
+				$this->getMessenger($messengerId)
+			);
 
-	/**
-	 * ActiveMessage no need to publish, they are stored in the database.
-	 *
-	 * @param MessageInterface $message
-	 * @return MessageServiceInterface
-	 */
-	public function publish(MessageInterface $message)
-	{
 		return $this;
 	}
 
 	/**
-	 * @param QueueInterface $queue
-	 * @return MessageServiceInterface
-	 * @throws \CDbException|\Exception
+	 * @return ActiveMessage
 	 */
-	public function dispatch(QueueInterface $queue)
+	public function createMessage()
 	{
-		if ($queue->count() > 0) {
-			$transaction = Yii::app()->getDb()->beginTransaction();
-
-			try {
-				while ($message = $queue->dequeue()) {
-					$this->publish($message);
-				}
-
-				$transaction->commit();
-			} catch (\CDbException $e) {
-				$transaction->rollback();
-				throw $e;
-			}
-		}
-
-		return $this;
+		return new $this->messageClass;
 	}
 }
